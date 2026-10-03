@@ -2,18 +2,14 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Tests for the HIP Fortran bindings.
-#
-# One executable per test, driven by CTest. These are runtime tests: they call
-# into the HIP runtime and need a GPU, so they build anywhere but only pass on a
-# machine with one.
-#
-# Reached only from the parent CMakeLists, under BUILD_FORTRAN_CLIENTS.
+# Tests for the HIP Fortran bindings: one executable per test, driven by CTest.
+# These are runtime tests -- they call into the HIP runtime and need a GPU, so
+# they build anywhere but only pass on a machine with one. Reached only from the
+# parent CMakeLists, under BUILD_FORTRAN_CLIENTS.
 
-# The Intel compilers (ifx/ifort) do not recognize the .f03 source extension and
-# skip such files ("no action performed"). Force Fortran compilation by inserting
-# -Tf immediately before the source in the compile rule; the LANGUAGE Fortran
-# source property alone is not enough.
+# The Intel compilers do not recognize the .f03 source extension and skip such
+# files ("no action performed"). Force Fortran compilation with -Tf immediately
+# before the source; the LANGUAGE source property alone is not enough.
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   string(REPLACE "<SOURCE>" "-Tf <SOURCE>"
          CMAKE_Fortran_COMPILE_OBJECT "${CMAKE_Fortran_COMPILE_OBJECT}")
@@ -21,16 +17,12 @@ endif()
 
 # The HIP runtime is a link-time dependency of every test. In-tree under clr it
 # is the amdhip64 target being built alongside; standalone it has to be found,
-# and comes as hip::host. The same reasoning as in the parent CMakeLists applies
-# to the order: in-tree, find_package(hip) is circular, and under TheRock the
+# and comes as hip::host. The order matters for the reason given in the parent
+# CMakeLists: in-tree, find_package(hip) is circular, and under TheRock the
 # super-project's dependency provider turns it into a hard error.
 #
 # hip-config.cmake reaches FindThreads, which hard-errors unless C or CXX is
-# enabled. The bindings are Fortran-only and standalone this project declares
-# LANGUAGES NONE, so C is enabled here purely to satisfy that dependency: it
-# compiles none of the sources below. Without it, a standalone test build stops
-# at "FindThreads only works if either C or CXX language is enabled", which says
-# nothing about what is actually wrong.
+# enabled, so C is enabled here and compiles none of the sources below.
 if(NOT TARGET hip::host AND NOT TARGET amdhip64)
   if(NOT CMAKE_C_COMPILER_LOADED AND NOT CMAKE_CXX_COMPILER_LOADED)
     enable_language(C)
@@ -103,11 +95,11 @@ foreach(_t IN LISTS HIP_FORTRAN_TESTS)
   hip_fortran_add_test(${_t})
 endforeach()
 
-# The remaining three are NOT pure Fortran: they need an actual GPU kernel, which
-# only a HIP compiler can produce. vecadd_kernel.hip.cpp carries it. Each of the
-# two ways a kernel reaches the runtime is guarded on its own tool, and a site
-# without it simply does not get these tests, which is why they are listed apart
-# rather than in HIP_FORTRAN_TESTS, where they would break the link for everyone.
+# The remaining three are NOT pure Fortran: they need an actual GPU kernel, from
+# vecadd_kernel.hip.cpp, which only a HIP compiler can produce. Each of the two
+# ways a kernel reaches the runtime is guarded on its own tool, which is why
+# they are listed apart from HIP_FORTRAN_TESTS: there they would break the link
+# for every site without that tool.
 
 # 1. hipOccupancy* and hipLaunchCooperativeKernel take the HOST STUB of a kernel,
 #    so the kernel is compiled into the test executable itself.

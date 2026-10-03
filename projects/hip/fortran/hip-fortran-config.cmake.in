@@ -7,11 +7,10 @@
 #   find_package(hip-fortran REQUIRED)
 #   target_link_libraries(my_app PRIVATE hip::hip_fortran)
 #
-# The bindings ship as one static archive and one .mod set PER FORTRAN COMPILER,
-# because a .mod is not portable across compilers or even across versions of the
-# same compiler. This package therefore checks that the consumer is building with
-# the compiler the bindings were installed for, and fails with a named diagnostic
-# rather than letting the build hit an unreadable .mod much later.
+# The bindings ship as one archive and one .mod set PER FORTRAN COMPILER,
+# because a .mod is not portable across compilers. This package checks that the
+# consumer is building with the compiler the bindings were installed for, and
+# fails with a named diagnostic rather than hitting an unreadable .mod later.
 
 @PACKAGE_INIT@
 
@@ -19,44 +18,39 @@ set(HIP_FORTRAN_COMPILER_DIR "@HIP_FORTRAN_COMPILER_DIR@")
 
 # The archive and the .mod tree, as absolute paths derived from where THIS file
 # was found rather than from the prefix it was built for, so the package still
-# works after being relocated and on a distro whose libdir is lib64. The
-# preamble above turns each PATH_VARS entry into exactly that, which is why no
-# path below spells lib/ or include/ literally.
+# works after relocation and on a distro whose libdir is lib64. The preamble
+# above turns each PATH_VARS entry into exactly that, which is why no path below
+# spells lib/ or include/ literally.
 #
-# That preamble's token is deliberately not spelled out here.
+# That preamble's token is deliberately not spelled out here:
 # configure_package_config_file() substitutes every occurrence of it, comments
 # included, so naming it would splice a second copy of the whole preamble --
-# including the set_and_check and check_required_components definitions -- into
-# the middle of this sentence.
+# set_and_check and check_required_components included -- into this sentence.
 set(_hip_libdir "@PACKAGE_HIP_FORTRAN_LIBDIR@")
 set(_hip_incdir "@PACKAGE_HIP_FORTRAN_INCLUDEDIR@")
 
-# A consumer asks "is a HIP Fortran binding available here?" through
-# hip_FORTRAN_FOUND. It is spelled after the C package rather than after this
-# one so that the question has the same answer however the package was reached,
-# and it stays FALSE on every early return below.
+# How a consumer asks "is a HIP Fortran binding available here?". Spelled after
+# the C package rather than after this one, so the question has the same answer
+# however the package was reached. It stays FALSE on every early return below.
 set(hip_FORTRAN_FOUND FALSE)
 
 if(NOT CMAKE_Fortran_COMPILER_LOADED)
   set(hip-fortran_FOUND FALSE)
-  # One argument, not several. set() with multiple arguments builds a LIST, and
+  # One argument, not several: set() with multiple arguments builds a LIST, and
   # find_package renders a list with a semicolon at every element boundary, so a
-  # message split across lines for readability comes out as
-  # "... find_package: ;add Fortran to ...". string(CONCAT) keeps the source
-  # readable and the rendered text clean.
+  # message split across lines would read "... find_package: ;add Fortran ...".
   string(CONCAT hip-fortran_NOT_FOUND_MESSAGE
       "The HIP Fortran bindings need Fortran enabled before find_package: "
       "add Fortran to your project() languages, or call enable_language(Fortran).")
   return()
 endif()
 
-# This MUST mirror the mapping in projects/hip/fortran/CMakeLists.txt exactly: it
-# recomputes, for the compiler the CONSUMER is using, the same directory name the
-# bindings were installed under. The two cannot share code, because this
-# file runs in a consumer's build long after ours is gone, so they are kept in
-# step by hand.
-# Get it wrong and the check never matches: the package then rejects every
-# consumer with a message claiming a compiler mismatch that does not exist.
+# This MUST mirror the mapping in projects/hip/fortran/CMakeLists.txt exactly:
+# it recomputes, for the compiler the CONSUMER is using, the same directory name
+# the bindings were installed under. The two cannot share code -- this file runs
+# in a consumer's build long after ours is gone -- so they are kept in step by
+# hand. Get it wrong and the check never matches: the package then rejects every
+# consumer over a compiler mismatch that does not exist.
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
   set(_hip_fc "gfortran")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Flang")     # Flang, LLVMFlang
@@ -91,17 +85,11 @@ function(_hip_dir_matches DIR FC OUT)
   endif()
 endfunction()
 
-# Which per-compiler directory to use.
-#
-# The recorded HIP_FORTRAN_COMPILER_DIR is the compiler the package was built
-# with, and it is only a default. A prefix can hold artifacts for several
-# compilers at once, since installing the bindings twice writes a gfortran and
-# an amdflang directory side by side under the .mod tree, but the config package
-# is written once, so the recorded value names whichever install ran last.
-# Trusting it blindly rejects a consumer whose .mod is present.
-#
-# So prefer the consumer's OWN compiler when its artifacts are installed here,
-# and fall back to the recorded directory when they are not.
+# Which per-compiler directory to use. A prefix can hold artifacts for several
+# compilers at once, but the config package is written once, so the recorded
+# HIP_FORTRAN_COMPILER_DIR names whichever install ran LAST and trusting it
+# blindly rejects a consumer whose .mod is present. Prefer the consumer's OWN
+# compiler when its artifacts are here, and fall back to the recorded value.
 set(_hip_dir "")
 if(EXISTS "${_hip_incdir}/${_hip_fc}/hip.mod")
   set(_hip_dir "${_hip_fc}")
@@ -130,15 +118,13 @@ endif()
 # exist BEFORE the targets file is read -- otherwise CMake stops with "the link
 # interface of target hip::hip_fortran contains: hip::host but the target was
 # not found", which reads like a packaging bug rather than a missing
-# find_package in the consumer. A binding built with no runtime in sight (a
-# standalone build with no ROCm on CMAKE_PREFIX_PATH) has no such reference, and
-# demanding the package here would be a dependency the artifact does not have.
+# find_package. A binding built with no runtime in sight has no such reference,
+# and demanding the package here would be a dependency the artifact lacks.
 #
 # hip-config.cmake reaches FindThreads, which hard-errors unless C or CXX is
-# enabled. A Fortran-only consumer has neither, so C is enabled here. Enabling a
-# language from a config package is unusual, and it is done deliberately: the
-# alternative is making every Fortran consumer of these bindings write
-# enable_language(C) for a reason that has nothing to do with their code.
+# enabled. Enabling a language from a config package is unusual, and deliberate:
+# the alternative is making every Fortran consumer write enable_language(C) for
+# a reason that has nothing to do with their code.
 if(@HIP_FORTRAN_NEEDS_C_PACKAGE@)
   if(NOT TARGET hip::host)
     if(NOT CMAKE_C_COMPILER_LOADED AND NOT CMAKE_CXX_COMPILER_LOADED)
