@@ -2,27 +2,15 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Tests for the HIP Fortran bindings: one executable per test, driven by CTest.
-# These are runtime tests -- they call into the HIP runtime and need a GPU, so
-# they build anywhere but only pass on a machine with one. Reached only from the
-# parent CMakeLists, under BUILD_FORTRAN_CLIENTS.
+# Runtime tests: they build anywhere but need a GPU to pass.
 
-# The Intel compilers do not recognize the .f03 source extension and skip such
-# files ("no action performed"). Force Fortran compilation with -Tf immediately
-# before the source; the LANGUAGE source property alone is not enough.
+# The Intel compilers skip .f03 sources unless -Tf precedes them.
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   string(REPLACE "<SOURCE>" "-Tf <SOURCE>"
          CMAKE_Fortran_COMPILE_OBJECT "${CMAKE_Fortran_COMPILE_OBJECT}")
 endif()
 
-# The HIP runtime is a link-time dependency of every test. In-tree under clr it
-# is the amdhip64 target being built alongside; standalone it has to be found,
-# and comes as hip::host. The order matters for the reason given in the parent
-# CMakeLists: in-tree, find_package(hip) is circular, and under TheRock the
-# super-project's dependency provider turns it into a hard error.
-#
-# hip-config.cmake reaches FindThreads, which hard-errors unless C or CXX is
-# enabled, so C is enabled here and compiles none of the sources below.
+# Same order as the parent: in-tree, find_package(hip) is circular.
 if(NOT TARGET hip::host AND NOT TARGET amdhip64)
   if(NOT CMAKE_C_COMPILER_LOADED AND NOT CMAKE_CXX_COMPILER_LOADED)
     enable_language(C)
@@ -47,7 +35,6 @@ function(hip_fortran_add_test name)
   if(NOT EXISTS "${src}")
     message(FATAL_ERROR "Missing test source: ${src}")
   endif()
-  # Force language detection for .f03 in toolchains where CMake misses it.
   set_source_files_properties("${src}" PROPERTIES LANGUAGE Fortran)
   add_executable(hip_fortran_test_${name} "${src}")
   set_target_properties(hip_fortran_test_${name} PROPERTIES LINKER_LANGUAGE Fortran)
@@ -56,15 +43,11 @@ function(hip_fortran_add_test name)
   target_compile_options(hip_fortran_test_${name} PRIVATE
     $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-std=gnu>)
   add_test(NAME hip_fortran_${name} COMMAND hip_fortran_test_${name})
-  # Every one of these calls into the HIP runtime and fails without a GPU, which
-  # is not the same thing as the binding being broken. The label lets a build
-  # machine with no GPU still run the suite meaningfully: ctest -LE gpu.
-  # Exit code 77 reports a device feature the test needs as missing.
+  # A test exits 77 when the device lacks the feature it exercises.
   set_tests_properties(hip_fortran_${name} PROPERTIES LABELS "gpu"
                        SKIP_RETURN_CODE 77)
 endfunction()
 
-# Pure-Fortran tests: the binding plus the HIP runtime is all they need to link.
 set(HIP_FORTRAN_TESTS
     cache_config
     device_management
@@ -97,28 +80,17 @@ foreach(_t IN LISTS HIP_FORTRAN_TESTS)
   hip_fortran_add_test(${_t})
 endforeach()
 
-# The remaining three are NOT pure Fortran: they need an actual GPU kernel, from
-# vecadd_kernel.hip.cpp, which only a HIP compiler can produce. Each of the two
-# ways a kernel reaches the runtime is guarded on its own tool, which is why
-# they are listed apart from HIP_FORTRAN_TESTS: there they would break the link
-# for every site without that tool.
-
-# 1. hipOccupancy* and hipLaunchCooperativeKernel take the HOST STUB of a kernel,
-#    so the kernel is compiled into the test executable itself.
-if(CMAKE_HIP_COMPILER OR CMAKE_HIP_COMPILER_LOADED)
-  set(_have_hip_lang TRUE)
-else()
+# occupancy and cooperative_launch take a kernel's host stub, so the kernel is
+# compiled into the test executable.
+if(NOT CMAKE_HIP_COMPILER_LOADED)
   include(CheckLanguage)
   check_language(HIP)
   if(CMAKE_HIP_COMPILER)
     enable_language(HIP)
-    set(_have_hip_lang TRUE)
-  else()
-    set(_have_hip_lang FALSE)
   endif()
 endif()
 
-if(_have_hip_lang)
+if(CMAKE_HIP_COMPILER_LOADED)
   foreach(_kt IN ITEMS occupancy cooperative_launch)
     hip_fortran_add_test(${_kt})
     target_sources(hip_fortran_test_${_kt} PRIVATE vecadd_kernel.hip.cpp)
@@ -133,37 +105,50 @@ else()
     "GPU kernel (occupancy, cooperative_launch)")
 endif()
 
-# 2. The hipModule* entry points load a STANDALONE code object at runtime, so the
-#    same kernel is compiled a second time with --genco and handed to the test
-#    through the environment.
-find_program(HIP_FORTRAN_HIPCC hipcc HINTS "${ROCM_PATH}/bin" /opt/rocm/bin)
-if(HIP_FORTRAN_HIPCC)
-  # --offload-arch=native and `rocm_agent_enumerator -name` both append the
-  # :xnack suffix, which pins the code object to one XNACK mode and makes
-  # hipModuleLoad fail in the other. The bare gfxNNN loads under both.
-  set(_arch "native")
+# module_kernel loads the same kernel as a standalone code object at runtime.
+find_program(HIP_FORTRAN_HIPCC hipcc
+             HINTS "${HIPCC_BIN_DIR}" "${ROCM_PATH}/bin" /opt/rocm/bin)
+
+set(_archs "")
+foreach(_v CMAKE_HIP_ARCHITECTURES GPU_TARGETS AMDGPU_TARGETS)
+  if(NOT _archs AND ${_v})
+    set(_archs "${${_v}}")
+  endif()
+endforeach()
+if(NOT _archs)
+  # Bare gfxNNN: the :xnack suffix of -name pins the code object to one mode.
   find_program(HIP_FORTRAN_AGENT_ENUM rocm_agent_enumerator
                HINTS "${ROCM_PATH}/bin" /opt/rocm/bin)
   if(HIP_FORTRAN_AGENT_ENUM)
     execute_process(COMMAND ${HIP_FORTRAN_AGENT_ENUM}
-                    OUTPUT_VARIABLE _agents OUTPUT_STRIP_TRAILING_WHITESPACE)
+                    OUTPUT_VARIABLE _agents OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
     string(REPLACE "\n" ";" _agents "${_agents}")
     list(REMOVE_ITEM _agents "gfx000")
     if(_agents)
-      list(GET _agents 0 _arch)
+      list(GET _agents 0 _archs)
     endif()
   endif()
-  if(_arch STREQUAL "native")
-    message(STATUS
-      "HIP: could not enumerate a GPU, so the module_kernel code object falls "
-      "back to --offload-arch=native, which does not compile unless a GPU is "
-      "visible at build time.")
-  endif()
+endif()
+
+if(NOT HIP_FORTRAN_HIPCC)
+  message(STATUS
+    "HIP: hipcc not found, skipping the module_kernel Fortran binding test "
+    "(it loads a code object built with hipcc --genco)")
+elseif(NOT _archs)
+  message(STATUS
+    "HIP: no GPU architecture known, skipping the module_kernel Fortran binding "
+    "test. Set CMAKE_HIP_ARCHITECTURES or GPU_TARGETS to build it.")
+else()
+  set(_arch_flags "")
+  foreach(_a IN LISTS _archs)
+    list(APPEND _arch_flags "--offload-arch=${_a}")
+  endforeach()
 
   set(_code_object "${CMAKE_CURRENT_BINARY_DIR}/vecadd_kernel.co")
   add_custom_command(
     OUTPUT "${_code_object}"
-    COMMAND ${HIP_FORTRAN_HIPCC} --genco --offload-arch=${_arch}
+    COMMAND ${HIP_FORTRAN_HIPCC} --genco ${_arch_flags}
             "${CMAKE_CURRENT_SOURCE_DIR}/vecadd_kernel.hip.cpp"
             -o "${_code_object}"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vecadd_kernel.hip.cpp"
@@ -174,8 +159,4 @@ if(HIP_FORTRAN_HIPCC)
   add_dependencies(hip_fortran_test_module_kernel hip_fortran_test_code_object)
   set_tests_properties(hip_fortran_module_kernel PROPERTIES
     ENVIRONMENT "HIP_FORTRAN_TEST_CODE_OBJECT=${_code_object}")
-else()
-  message(STATUS
-    "HIP: hipcc not found, skipping the module_kernel Fortran binding test "
-    "(it loads a code object built with hipcc --genco)")
 endif()
