@@ -340,17 +340,6 @@ if(BUILD_FORTRAN_CLIENTS)
   # when testing was enabled at the TOP level. Otherwise the tests build and
   # register, and `ctest` at the parent build root reports "Total Tests: 0".
   enable_testing()
-  if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    get_property(_top_testing GLOBAL PROPERTY CTEST_TARGETS_ADDED)
-    if(NOT _top_testing)
-      message(STATUS
-        "HIP: the Fortran binding tests are registered, but ctest discovers "
-        "tests only from a build root where testing was enabled at the top "
-        "level. If `ctest` there reports no tests, add include(CTest) or "
-        "enable_testing() to the top-level CMakeLists, or run ctest from "
-        "${CMAKE_CURRENT_BINARY_DIR}/test.")
-    endif()
-  endif()
   add_subdirectory(test)
 endif()
 
