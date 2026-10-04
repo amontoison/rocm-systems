@@ -52,6 +52,7 @@ program occupancy
 
   type(hipDeviceProp_t)  :: prop
   integer(c_int), target :: gridsize, blocksize, nblocks, nblocks_small
+  integer(c_size_t) :: smem_cu, max_fit
 
   write(*,"(a)",advance="no") "-- Running test 'hip occupancy' (Fortran 2003 interfaces) - "
 
@@ -97,15 +98,22 @@ program occupancy
      call exit(1)
   end if
 
-  ! Requesting all of the shared memory leaves room for a single block at most.
+  ! Each block claiming the per-block shared memory maximum: no more blocks fit
+  ! than the multiprocessor's shared memory holds, which can be more than one.
   nblocks_small = 0
   call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(c_loc(nblocks_small), &
                                                              c_funloc(vector_add), &
                                                              blocksize, &
                                                              prop%sharedMemPerBlock))
-  if (nblocks_small > 1) then
-     write(*,*) "FAILED!", nblocks_small, "blocks fit while each claims all shared memory"
-     call exit(1)
+  smem_cu = prop%maxSharedMemoryPerMultiProcessor
+  if (smem_cu == 0) smem_cu = prop%sharedMemPerMultiprocessor
+  if (smem_cu > 0 .and. prop%sharedMemPerBlock > 0) then
+     max_fit = max(1_c_size_t, smem_cu / prop%sharedMemPerBlock)
+     if (nblocks_small > max_fit) then
+        write(*,*) "FAILED!", nblocks_small, "blocks of", prop%sharedMemPerBlock, &
+                   "bytes of shared memory fit in", smem_cu, "bytes per multiprocessor"
+        call exit(1)
+     end if
   end if
 
   write(*,*) "PASSED!"
