@@ -171,7 +171,7 @@ if(HIP_FORTRAN_HIPCC)
   hip_fortran_add_test(module_kernel)
   add_dependencies(hip_fortran_test_module_kernel hip_fortran_test_code_object)
   set_tests_properties(hip_fortran_module_kernel PROPERTIES
-    ENVIRONMENT "HIPFORT_TEST_CODE_OBJECT=${_code_object}")
+    ENVIRONMENT "HIP_FORTRAN_TEST_CODE_OBJECT=${_code_object}")
 else()
   message(STATUS
     "HIP: hipcc not found, skipping the module_kernel Fortran binding test "

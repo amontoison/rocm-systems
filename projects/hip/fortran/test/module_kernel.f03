@@ -30,7 +30,7 @@
 ! Loads a separately compiled code object, looks up the kernel it contains,
 ! queries its attributes and occupancy, then runs it as a graph kernel node,
 ! as an in-place update of the instantiated graph, and cooperatively.
-! CTest passes the code object path in HIPFORT_TEST_CODE_OBJECT.
+! CTest passes the code object path in HIP_FORTRAN_TEST_CODE_OBJECT.
 !!!!!!!!!!!!!!
 !
 program module_kernel
@@ -61,9 +61,9 @@ program module_kernel
 
   write(*,"(a)",advance="no") "-- Running test 'hip module_kernel' (Fortran 2003 interfaces) - "
 
-  call get_environment_variable("HIPFORT_TEST_CODE_OBJECT", copath, pathlen)
+  call get_environment_variable("HIP_FORTRAN_TEST_CODE_OBJECT", copath, pathlen)
   if (pathlen == 0) then
-     write(*,*) "FAILED! HIPFORT_TEST_CODE_OBJECT is not set"
+     write(*,*) "FAILED! HIP_FORTRAN_TEST_CODE_OBJECT is not set"
      call exit(1)
   end if
   cofile = copath(1:pathlen)//c_null_char
