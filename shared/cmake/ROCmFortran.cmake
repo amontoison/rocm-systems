@@ -86,7 +86,8 @@ if(NOT DEFINED ROCM_HAVE_FORTRAN)
     #
     # amdflang sits beside the clang already compiling the project that included
     # this module, so the answer is next to CMAKE_CXX_COMPILER when there is one;
-    # ROCM_PATH covers a configure that has enabled no C or C++. NO_DEFAULT_PATH
+    # ROCM_PATH (variable or environment) and then /opt/rocm cover a configure
+    # that has enabled no C or C++. NO_DEFAULT_PATH
     # so a stray amdflang elsewhere on PATH cannot win over the ROCm at hand.
     #
     # An explicit CMAKE_Fortran_COMPILER, or FC in the environment, always wins:
@@ -104,10 +105,14 @@ if(NOT DEFINED ROCM_HAVE_FORTRAN)
           list(APPEND _rocm_fc_hints "${_rocm_fc_dir}")
         endif()
       endforeach()
-      if(ROCM_PATH)
-        list(APPEND _rocm_fc_hints "${ROCM_PATH}/lib/llvm/bin" "${ROCM_PATH}/bin")
-      endif()
+      foreach(_rocm_fc_root "${ROCM_PATH}" "$ENV{ROCM_PATH}" "/opt/rocm")
+        if(_rocm_fc_root)
+          list(APPEND _rocm_fc_hints "${_rocm_fc_root}/bin"
+                                     "${_rocm_fc_root}/lib/llvm/bin")
+        endif()
+      endforeach()
       if(_rocm_fc_hints)
+        unset(_rocm_amdflang CACHE)
         find_program(_rocm_amdflang NAMES amdflang HINTS ${_rocm_fc_hints}
                      NO_DEFAULT_PATH)
         # Confirm it runs before committing to it. A ROCm tree can carry a
@@ -125,10 +130,12 @@ if(NOT DEFINED ROCM_HAVE_FORTRAN)
           endif()
           unset(_rocm_fc_rc)
         endif()
+        unset(_rocm_amdflang CACHE)
       endif()
       unset(_rocm_fc_hints)
       unset(_rocm_fc_cc)
       unset(_rocm_fc_dir)
+      unset(_rocm_fc_root)
     endif()
 
     check_language(Fortran)
@@ -151,7 +158,3 @@ if(NOT DEFINED ROCM_HAVE_FORTRAN)
   unset(_rocm_fortran_probed)
 
 endif()
-
-# No return() anywhere above, deliberately. A return() inside a file processed by
-# include() returns from the INCLUDING scope before CMP0140, so it would silently
-# truncate the caller's CMakeLists rather than just end this module.

@@ -124,8 +124,8 @@ else()
   # on the search path, which on a ROCm CI image is the system gfortran -- that
   # is how the bindings ended up installed under fortran/gfortran/ while the
   # documentation promises fortran/amdflang/. Look beside the clang already
-  # compiling this project, with ROCM_PATH for a standalone configure and
-  # NO_DEFAULT_PATH so a stray amdflang cannot win. An explicit
+  # compiling this project, then under ROCM_PATH (variable and environment)
+  # and /opt/rocm, with NO_DEFAULT_PATH so a stray amdflang cannot win. An explicit
   # CMAKE_Fortran_COMPILER, or FC, always wins. check_language() is a no-op once
   # CMAKE_Fortran_COMPILER is defined, so this has to run before it.
   if(NOT CMAKE_Fortran_COMPILER AND NOT DEFINED ENV{FC})
@@ -137,10 +137,14 @@ else()
         list(APPEND _rocm_fc_hints "${_rocm_fc_dir}")
       endif()
     endforeach()
-    if(ROCM_PATH)
-      list(APPEND _rocm_fc_hints "${ROCM_PATH}/lib/llvm/bin" "${ROCM_PATH}/bin")
-    endif()
+    foreach(_rocm_fc_root "${ROCM_PATH}" "$ENV{ROCM_PATH}" "/opt/rocm")
+      if(_rocm_fc_root)
+        list(APPEND _rocm_fc_hints "${_rocm_fc_root}/bin"
+                                   "${_rocm_fc_root}/lib/llvm/bin")
+      endif()
+    endforeach()
     if(_rocm_fc_hints)
+      unset(_rocm_amdflang CACHE)
       find_program(_rocm_amdflang NAMES amdflang HINTS ${_rocm_fc_hints}
                    NO_DEFAULT_PATH)
       # Confirm it runs before committing to it: a ROCm tree can carry a
@@ -156,10 +160,12 @@ else()
         endif()
         unset(_rocm_fc_rc)
       endif()
+      unset(_rocm_amdflang CACHE)
     endif()
     unset(_rocm_fc_hints)
     unset(_rocm_fc_cc)
     unset(_rocm_fc_dir)
+    unset(_rocm_fc_root)
   endif()
 
   check_language(Fortran)
