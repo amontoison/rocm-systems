@@ -25,7 +25,7 @@
 
 !!!!!!!!!!!!!!
 ! HIP runtime stream-capture introspection (Fortran 2003 interfaces)
-! see: https:!rocm.docs.amd.com/projects/HIP/en/latest/
+! see: https://rocm.docs.amd.com/projects/HIP/en/latest/
 !
 ! Exercises the three capture-status queries -- hipStreamIsCapturing,
 ! hipStreamGetCaptureInfo and hipStreamGetCaptureInfo_v2 -- plus
@@ -63,6 +63,7 @@ program stream_capture_info
   type(c_ptr) :: nodes_out(8)
   integer(kind(hipStreamCaptureStatusNone)) :: capstat
   integer(kind(hipGraphNodeTypeKernel)) :: nodetype
+  integer(kind(hipGraphNodeTypeKernel)) :: nodetypes(2)
   integer(c_long_long), target :: capid, capid_v2
   integer(c_size_t), target :: ndeps, numnodes
 
@@ -145,11 +146,16 @@ program stream_capture_info
      call exit(1)
   end if
 
-  nodetype = -1
-  call hipCheck(hipGraphNodeGetType(nodes_out(1), nodetype))
-  if (nodetype /= hipGraphNodeTypeMemset) then
-     write(*,*) "FAILED! hipGraphNodeGetType on the captured memset returned ", nodetype, &
-                " (expected hipGraphNodeTypeMemset = ", hipGraphNodeTypeMemset, ")"
+  ! hipGraphGetNodes returns the nodes in no specified order, so accept the
+  ! set {Memset, Empty} either way round.
+  nodetypes = -1
+  call hipCheck(hipGraphNodeGetType(nodes_out(1), nodetypes(1)))
+  call hipCheck(hipGraphNodeGetType(nodes_out(2), nodetypes(2)))
+  if (.not. ((nodetypes(1) == hipGraphNodeTypeMemset .and. nodetypes(2) == hipGraphNodeTypeEmpty) .or. &
+             (nodetypes(1) == hipGraphNodeTypeEmpty .and. nodetypes(2) == hipGraphNodeTypeMemset))) then
+     write(*,*) "FAILED! hipGraphNodeGetType on the graph nodes returned ", nodetypes, &
+                " (expected hipGraphNodeTypeMemset = ", hipGraphNodeTypeMemset, &
+                " and hipGraphNodeTypeEmpty = ", hipGraphNodeTypeEmpty, " in either order)"
      call exit(1)
   end if
 

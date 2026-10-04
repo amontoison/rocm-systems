@@ -25,12 +25,13 @@
 
 !!!!!!!!!!!!!!
 ! HIP runtime host-side stream callbacks
-! see: https:!rocm.docs.amd.com/projects/HIP/en/latest/
+! see: https://rocm.docs.amd.com/projects/HIP/en/latest/
 !
 ! Exercises hipStreamAddCallback and hipLaunchHostFunc. Queues an async memset
 ! on a stream, then registers one callback of each kind via c_funloc. After
-! synchronize: asserts both callbacks fired (counter == 2) and device data from
-! the preceding memset is intact (ordering: callbacks trail enqueued device work).
+! synchronize: asserts both callbacks fired (counter == 2) and the memset queued
+! ahead of them took effect. Ordering between the callbacks and the memset is
+! not observed here: the readback runs after the synchronize.
 !!!!!!!!!!!!!!
 !
 program stream_callback
@@ -70,7 +71,7 @@ program stream_callback
   call hipCheck(hipMalloc(dptr, nbytes))
   call hipCheck(hipStreamCreate(stream))
 
-  ! Queue device work; the callbacks below must not fire until this completes.
+  ! Queue device work ahead of the callbacks.
   call hipCheck(hipMemsetAsync(dptr, 7, nbytes, stream))
 
   call hipCheck(hipStreamAddCallback(stream, c_funloc(stream_cb), c_loc(counter), 0_c_int))
@@ -83,7 +84,7 @@ program stream_callback
     call exit(1)
   end if
 
-  ! Copy device data back; proves memset completed before either callback ran.
+  ! Copy device data back: the memset queued on the same stream took effect.
   hbuf = 0_c_int8_t
   call hipCheck(hipMemcpy(c_loc(hbuf(1)), dptr, nbytes, hipMemcpyDeviceToHost))
   if (any(hbuf /= 7_c_int8_t)) then
