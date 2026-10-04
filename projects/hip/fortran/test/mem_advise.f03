@@ -30,7 +30,8 @@
 ! Applies unified-memory hints to a managed allocation, reads them back with
 ! hipMemRangeGetAttribute, then prefetches the range to the device and back to
 ! the host and checks the host sees the zeros the device wrote while the range
-! was migrated.
+! was migrated. Exits 77 (skipped) when the device has no managed memory, or
+! when the runtime leaves a range attribute unreported.
 !!!!!!!!!!!!!!
 !
 program mem_advise
@@ -46,6 +47,8 @@ program mem_advise
   real(c_double), pointer :: p(:)
   integer(c_size_t) :: nbytes
   integer(c_int), target :: qattr
+  integer(c_int) :: managed
+  logical :: unreported = .false.
   integer :: i
 
   write(*,"(a)",advance="no") "-- Running test 'hip mem_advise' (Fortran 2003 interfaces) - "
@@ -53,6 +56,11 @@ program mem_advise
   nbytes = int(n, c_size_t) * 8
 
   call hipCheck(hipSetDevice(0))
+  call hipCheck(hipDeviceGetAttribute(managed, hipDeviceAttributeManagedMemory, 0))
+  if (managed == 0) then
+     write(*,*) "SKIPPED! (managed memory unsupported on this device)"
+     call exit(77)
+  end if
   call hipCheck(hipStreamCreate(stream))
   call hipCheck(hipMallocManaged(mptr, nbytes, hipMemAttachGlobal))
   call c_f_pointer(mptr, p, [n])
@@ -90,6 +98,10 @@ program mem_advise
   call hipCheck(hipFree(mptr))
   call hipCheck(hipStreamDestroy(stream))
 
+  if (unreported) then
+     write(*,*) "SKIPPED! (hipMemRangeGetAttribute left an attribute unwritten)"
+     call exit(77)
+  end if
   write(*,*) "PASSED!"
 
 contains
@@ -100,10 +112,12 @@ contains
     character(len=*), intent(in) :: what
     qattr = -12345
     call hipCheck(hipMemRangeGetAttribute(c_loc(qattr), 4_c_size_t, attribute, mptr, nbytes))
-    ! Some runtimes report success without writing the attribute. The call went
-    ! through the binding and its status was checked, so an untouched sentinel
-    ! is a runtime gap rather than a binding failure.
-    if (qattr == -12345) return
+    ! Some runtimes report success without writing the attribute: a runtime gap
+    ! rather than a binding failure, so the test ends as skipped, not passed.
+    if (qattr == -12345) then
+       unreported = .true.
+       return
+    end if
     if (qattr /= want) then
        write(*,*) "FAILED! ", what, " = ", qattr, " (expected ", want, ")"
        call exit(1)

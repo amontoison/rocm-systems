@@ -59,7 +59,9 @@ function(hip_fortran_add_test name)
   # Every one of these calls into the HIP runtime and fails without a GPU, which
   # is not the same thing as the binding being broken. The label lets a build
   # machine with no GPU still run the suite meaningfully: ctest -LE gpu.
-  set_tests_properties(hip_fortran_${name} PROPERTIES LABELS "gpu")
+  # Exit code 77 reports a device feature the test needs as missing.
+  set_tests_properties(hip_fortran_${name} PROPERTIES LABELS "gpu"
+                       SKIP_RETURN_CODE 77)
 endfunction()
 
 # Pure-Fortran tests: the binding plus the HIP runtime is all they need to link.
