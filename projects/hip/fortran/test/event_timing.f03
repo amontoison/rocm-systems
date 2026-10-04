@@ -25,7 +25,7 @@
 
 !!!!!!!!!!!!!!
 ! HIP runtime event timing and cross-stream ordering (Fortran 2003 interfaces)
-! see: https:!rocm.docs.amd.com/projects/HIP/en/latest/
+! see: https://rocm.docs.amd.com/projects/HIP/en/latest/
 !
 ! Exercises hipEventCreateWithFlags, hipEventQuery, hipEventElapsedTime and
 ! hipStreamWaitEvent. The ordering check poisons a buffer and keeps the
@@ -91,7 +91,7 @@ program event_timing
   end if
 
   call hipCheck(hipEventElapsedTime(ms, estart, estop))
-  if (ms <= 0.0 .or. ms >= 10000.0) then
+  if (.not. (ms > 0.0 .and. ms < 10000.0)) then
     write(*,*) "FAILED! elapsed time = ", ms, " ms (expected 0 < ms < 10000)"
     call exit(1)
   end if

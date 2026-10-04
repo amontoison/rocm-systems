@@ -126,7 +126,7 @@ program error_version
   call hipCheck(hipMemcpy(dptr, c_loc(hval), nbytes, hipMemcpyHostToDevice))
   hval = 0.0
   call hipCheck(hipMemcpy(c_loc(hval), dptr, nbytes, hipMemcpyDeviceToHost))
-  if (abs(hval - 3.14) > 1.0e-6) then
+  if (.not. (abs(hval - 3.14) <= 1.0e-6)) then
      write(*,*) "FAILED! post-error memcpy roundtrip: got", hval
      call exit(1)
   end if

@@ -25,7 +25,7 @@
 
 !!!!!!!!!!!!!!
 ! HIP runtime cooperative kernel launch (Fortran 2003 interfaces)
-! see: https:!rocm.docs.amd.com/projects/HIP/en/latest/
+! see: https://rocm.docs.amd.com/projects/HIP/en/latest/
 !
 ! Launches the kernel of vecadd_kernel.hip.cpp, which is compiled into this
 ! test, with hipLaunchCooperativeKernel on an occupancy-sized grid, checks the
@@ -105,7 +105,7 @@ program cooperative_launch
 
   call hipCheck(hipMemcpy(c_loc(hout(1)), dout, nbytes, hipMemcpyDeviceToHost))
   do i = 1, n
-     if (abs(hout(i) - (ha(i) + hb(i))) > 1.0d-12) then
+     if (.not. (abs(hout(i) - (ha(i) + hb(i))) <= 1.0d-12)) then
         write(*,*) "FAILED! hout(", i, ") = ", hout(i), " expected ", ha(i) + hb(i)
         call exit(1)
      end if

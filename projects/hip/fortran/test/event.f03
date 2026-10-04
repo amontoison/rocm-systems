@@ -25,7 +25,7 @@
 
 !!!!!!!!!!!!!!
 ! HIP runtime event timing
-! see: https:!rocm.docs.amd.com/projects/HIP/en/latest/
+! see: https://rocm.docs.amd.com/projects/HIP/en/latest/
 !
 ! Exercises hipEventCreate, hipEventRecord, hipEventSynchronize,
 ! hipEventElapsedTime and hipEventDestroy by timing a device memset on the
@@ -58,7 +58,7 @@ program event
   call hipCheck(hipEventSynchronize(estop))
   call hipCheck(hipEventElapsedTime(ms, estart, estop))
 
-  if (ms < 0.0) then
+  if (.not. (ms >= 0.0)) then
      write(*,*) "FAILED! elapsed time = ", ms, " ms (expected >= 0)"
      call exit(1)
   end if
