@@ -51,7 +51,7 @@ program occupancy
   end interface
 
   type(hipDeviceProp_t)  :: prop
-  integer(c_int), target :: gridsize, blocksize, nblocks, nblocks_small
+  integer(c_int) :: gridsize, blocksize, nblocks, nblocks_small
   integer(c_size_t) :: smem_cu, max_fit
 
   write(*,"(a)",advance="no") "-- Running test 'hip occupancy' (Fortran 2003 interfaces) - "
@@ -61,7 +61,7 @@ program occupancy
 
   gridsize = 0
   blocksize = 0
-  call hipCheck(hipOccupancyMaxPotentialBlockSize(c_loc(gridsize), c_loc(blocksize), &
+  call hipCheck(hipOccupancyMaxPotentialBlockSize(gridsize, blocksize, &
                                                   c_funloc(vector_add), 0_c_size_t, 0))
   if (blocksize <= 0 .or. blocksize > prop%maxThreadsPerBlock) then
      write(*,*) "FAILED! hipOccupancyMaxPotentialBlockSize block size", blocksize, &
@@ -74,7 +74,7 @@ program occupancy
   end if
 
   nblocks = 0
-  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(c_loc(nblocks), &
+  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(nblocks, &
                                                              c_funloc(vector_add), &
                                                              blocksize, 0_c_size_t))
   if (nblocks <= 0) then
@@ -89,7 +89,7 @@ program occupancy
 
   ! Smaller blocks can never fit fewer times on a multiprocessor.
   nblocks_small = 0
-  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(c_loc(nblocks_small), &
+  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(nblocks_small, &
                                                              c_funloc(vector_add), &
                                                              blocksize/2, 0_c_size_t))
   if (nblocks_small < nblocks) then
@@ -101,7 +101,7 @@ program occupancy
   ! Each block claiming the per-block shared memory maximum: no more blocks fit
   ! than the multiprocessor's shared memory holds, which can be more than one.
   nblocks_small = 0
-  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(c_loc(nblocks_small), &
+  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(nblocks_small, &
                                                              c_funloc(vector_add), &
                                                              blocksize, &
                                                              prop%sharedMemPerBlock))

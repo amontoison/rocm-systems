@@ -22,6 +22,7 @@
 ! THE SOFTWARE.
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! GENERATED FILE -- do not edit by hand; regenerate with the rocm-fortran generator.
 
 module hip
   use, intrinsic :: iso_c_binding
@@ -145,7 +146,7 @@ module hip
     enumerator :: hipLibraryBinaryIsPreserved = 1
   end enum
 
-  ! enum (unnamed at /opt/rocm-10.2/include/hip/hip_runtime_api.h:37:1)
+  ! enum (unnamed at hip/hip_runtime_api.h:37:1)
   enum, bind(c)
     enumerator :: HIP_SUCCESS = 0
     enumerator :: HIP_ERROR_INVALID_VALUE = 1
@@ -351,6 +352,9 @@ module hip
     enumerator :: hipDeviceAttributeGPUDirectRDMAWithHipVMMSupported = 94
     enumerator :: hipDeviceAttributeHandleTypeFabricSupported = 95
     enumerator :: hipDeviceAttributeHostAllocDmaBufSupported = 96
+    enumerator :: hipDeviceAttributeGPUDirectRDMASupported = 97
+    enumerator :: hipDeviceAttributeGPUDirectRDMAFlushWritesOptions = 98
+    enumerator :: hipDeviceAttributeGPUDirectRDMAWritesOrdering = 99
     enumerator :: hipDeviceAttributeCudaCompatibleEnd = 9999
     enumerator :: hipDeviceAttributeAmdSpecificBegin = 10000
     enumerator :: hipDeviceAttributeClockInstructionRate = 10000
@@ -406,6 +410,17 @@ module hip
     enumerator :: hipGPUDirectRDMAWritesOrderingNone = 0
     enumerator :: hipGPUDirectRDMAWritesOrderingOwner = 100
     enumerator :: hipGPUDirectRDMAWritesOrderingAllDevices = 200
+  end enum
+
+  ! hipFlushGPUDirectRDMAWritesTarget
+  enum, bind(c)
+    enumerator :: hipFlushGPUDirectRDMAWritesTargetCurrentDevice = 0
+  end enum
+
+  ! hipFlushGPUDirectRDMAWritesScope
+  enum, bind(c)
+    enumerator :: hipFlushGPUDirectRDMAWritesToOwner = 100
+    enumerator :: hipFlushGPUDirectRDMAWritesToAllDevices = 200
   end enum
 
   ! hipChannelFormatKind
@@ -1926,7 +1941,7 @@ module hip
        bind(C, name="hipDeviceGetLuid")
        import :: c_ptr, c_int, hipSuccess
        type(c_ptr), value :: luid
-       type(c_ptr), value :: deviceNodeMask
+       integer(c_int) :: deviceNodeMask
        integer(c_int), value :: device
        integer(kind(hipSuccess)) :: DeviceGetLuid
     end function hipDeviceGetLuid
@@ -2059,6 +2074,19 @@ module hip
        integer(c_int), value :: deviceId
        integer(kind(hipSuccess)) :: DeviceGetAttribute
     end function hipDeviceGetAttribute
+
+    !---------------------------------------------
+    ! hipDeviceFlushGPUDirectRDMAWrites
+    !---------------------------------------------
+    function hipDeviceFlushGPUDirectRDMAWrites(target, scope) &
+       result(DeviceFlushGPUDirectRDMAWrites) &
+       bind(C, name="hipDeviceFlushGPUDirectRDMAWrites")
+       import :: hipFlushGPUDirectRDMAWritesTargetCurrentDevice, hipFlushGPUDirectRDMAWritesToOwner, &
+                 hipSuccess
+       integer(kind(hipFlushGPUDirectRDMAWritesTargetCurrentDevice)), value :: target
+       integer(kind(hipFlushGPUDirectRDMAWritesToOwner)), value :: scope
+       integer(kind(hipSuccess)) :: DeviceFlushGPUDirectRDMAWrites
+    end function hipDeviceFlushGPUDirectRDMAWrites
 
     !---------------------------------------------
     ! hipDeviceGetDefaultMemPool
@@ -2549,9 +2577,9 @@ module hip
     function hipStreamGetId(stream, streamId) &
        result(StreamGetId) &
        bind(C, name="hipStreamGetId")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_int64_t, hipSuccess
        type(c_ptr), value :: stream
-       type(c_ptr), value :: streamId
+       integer(c_int64_t) :: streamId
        integer(kind(hipSuccess)) :: StreamGetId
     end function hipStreamGetId
 
@@ -3740,12 +3768,12 @@ module hip
     function hipGetProcAddress(symbol, pfn, hipVersion, flags, symbolStatus) &
        result(GetProcAddress) &
        bind(C, name="hipGetProcAddress")
-       import :: c_ptr, c_int, c_int64_t, hipSuccess
+       import :: c_ptr, c_int, c_int64_t, HIP_GET_PROC_ADDRESS_SUCCESS, hipSuccess
        type(c_ptr), value :: symbol
        type(c_ptr) :: pfn
        integer(c_int), value :: hipVersion
        integer(c_int64_t), value :: flags
-       type(c_ptr), value :: symbolStatus
+       integer(kind(HIP_GET_PROC_ADDRESS_SUCCESS)), optional :: symbolStatus
        integer(kind(hipSuccess)) :: GetProcAddress
     end function hipGetProcAddress
 
@@ -4187,10 +4215,10 @@ module hip
     function hipArrayGetInfo(desc, extent, flags, array) &
        result(ArrayGetInfo) &
        bind(C, name="hipArrayGetInfo")
-       import :: hipChannelFormatDesc, hipExtent, c_ptr, hipSuccess
+       import :: hipChannelFormatDesc, hipExtent, c_int, c_ptr, hipSuccess
        type(hipChannelFormatDesc) :: desc
        type(hipExtent) :: extent
-       type(c_ptr), value :: flags
+       integer(c_int) :: flags
        type(c_ptr), value :: array
        integer(kind(hipSuccess)) :: ArrayGetInfo
     end function hipArrayGetInfo
@@ -4723,8 +4751,8 @@ module hip
     function hipExecutionCtxGetDevice(device, ctx) &
        result(ExecutionCtxGetDevice) &
        bind(C, name="hipExecutionCtxGetDevice")
-       import :: c_ptr, hipSuccess
-       type(c_ptr), value :: device
+       import :: c_int, c_ptr, hipSuccess
+       integer(c_int) :: device
        type(c_ptr), value :: ctx
        integer(kind(hipSuccess)) :: ExecutionCtxGetDevice
     end function hipExecutionCtxGetDevice
@@ -4735,9 +4763,9 @@ module hip
     function hipExecutionCtxGetId(ctx, ctxId) &
        result(ExecutionCtxGetId) &
        bind(C, name="hipExecutionCtxGetId")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_int64_t, hipSuccess
        type(c_ptr), value :: ctx
-       type(c_ptr), value :: ctxId
+       integer(c_int64_t) :: ctxId
        integer(kind(hipSuccess)) :: ExecutionCtxGetId
     end function hipExecutionCtxGetId
 
@@ -5106,8 +5134,8 @@ module hip
     function hipKernelGetAttribute(pi, attrib, kernel, dev) &
        result(KernelGetAttribute) &
        bind(C, name="hipKernelGetAttribute")
-       import :: c_ptr, HIP_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, c_int, hipSuccess
-       type(c_ptr), value :: pi
+       import :: c_int, HIP_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, c_ptr, hipSuccess
+       integer(c_int) :: pi
        integer(kind(HIP_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK)), value :: attrib
        type(c_ptr), value :: kernel
        integer(c_int), value :: dev
@@ -5311,11 +5339,11 @@ module hip
     function hipGetDriverEntryPoint(symbol, funcPtr, flags, driverStatus) &
        result(GetDriverEntryPoint) &
        bind(C, name="hipGetDriverEntryPoint")
-       import :: c_ptr, c_int64_t, hipSuccess
+       import :: c_ptr, c_int64_t, hipDriverEntryPointSuccess, hipSuccess
        type(c_ptr), value :: symbol
        type(c_ptr) :: funcPtr
        integer(c_int64_t), value :: flags
-       type(c_ptr), value :: driverStatus
+       integer(kind(hipDriverEntryPointSuccess)), optional :: driverStatus
        integer(kind(hipSuccess)) :: GetDriverEntryPoint
     end function hipGetDriverEntryPoint
 
@@ -5400,10 +5428,10 @@ module hip
     function hipLinkComplete(state, hipBinOut, sizeOut) &
        result(LinkComplete) &
        bind(C, name="hipLinkComplete")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: state
        type(c_ptr) :: hipBinOut
-       type(c_ptr), value :: sizeOut
+       integer(c_size_t), optional :: sizeOut
        integer(kind(hipSuccess)) :: LinkComplete
     end function hipLinkComplete
 
@@ -5647,8 +5675,8 @@ module hip
                                                           dynSharedMemPerBlk) &
        result(OccupancyMaxActiveBlocksPerMultiprocessor) &
        bind(C, name="hipOccupancyMaxActiveBlocksPerMultiprocessor")
-       import :: c_ptr, c_funptr, c_int, c_size_t, hipSuccess
-       type(c_ptr), value :: numBlocks
+       import :: c_int, c_funptr, c_size_t, hipSuccess
+       integer(c_int) :: numBlocks
        type(c_funptr), value :: f
        integer(c_int), value :: blockSize
        integer(c_size_t), value :: dynSharedMemPerBlk
@@ -5662,8 +5690,8 @@ module hip
                                                                    dynSharedMemPerBlk, flags) &
        result(OccupancyMaxActiveBlocksPerMultiprocessorWithFlags) &
        bind(C, name="hipOccupancyMaxActiveBlocksPerMultiprocessorWithFlags")
-       import :: c_ptr, c_funptr, c_int, c_size_t, hipSuccess
-       type(c_ptr), value :: numBlocks
+       import :: c_int, c_funptr, c_size_t, hipSuccess
+       integer(c_int) :: numBlocks
        type(c_funptr), value :: f
        integer(c_int), value :: blockSize
        integer(c_size_t), value :: dynSharedMemPerBlk
@@ -5678,9 +5706,9 @@ module hip
                                                blockSizeLimit) &
        result(OccupancyMaxPotentialBlockSize) &
        bind(C, name="hipOccupancyMaxPotentialBlockSize")
-       import :: c_ptr, c_funptr, c_size_t, c_int, hipSuccess
-       type(c_ptr), value :: gridSize
-       type(c_ptr), value :: blockSize
+       import :: c_int, c_funptr, c_size_t, hipSuccess
+       integer(c_int) :: gridSize
+       integer(c_int) :: blockSize
        type(c_funptr), value :: f
        integer(c_size_t), value :: dynSharedMemPerBlk
        integer(c_int), value :: blockSizeLimit
@@ -5693,8 +5721,8 @@ module hip
     function hipOccupancyAvailableDynamicSMemPerBlock(dynamicSmemSize, f, numBlocks, blockSize) &
        result(OccupancyAvailableDynamicSMemPerBlock) &
        bind(C, name="hipOccupancyAvailableDynamicSMemPerBlock")
-       import :: c_ptr, c_funptr, c_int, hipSuccess
-       type(c_ptr), value :: dynamicSmemSize
+       import :: c_size_t, c_funptr, c_int, hipSuccess
+       integer(c_size_t) :: dynamicSmemSize
        type(c_funptr), value :: f
        integer(c_int), value :: numBlocks
        integer(c_int), value :: blockSize
@@ -5707,8 +5735,8 @@ module hip
     function hipOccupancyMaxActiveClusters(numClusters, f, config) &
        result(OccupancyMaxActiveClusters) &
        bind(C, name="hipOccupancyMaxActiveClusters")
-       import :: c_ptr, c_funptr, hipLaunchConfig_t, hipSuccess
-       type(c_ptr), value :: numClusters
+       import :: c_int, c_funptr, hipLaunchConfig_t, hipSuccess
+       integer(c_int) :: numClusters
        type(c_funptr), value :: f
        type(hipLaunchConfig_t) :: config
        integer(kind(hipSuccess)) :: OccupancyMaxActiveClusters
@@ -6278,8 +6306,8 @@ module hip
     function hipTexRefGetFlags(pFlags, texRef) &
        result(TexRefGetFlags) &
        bind(C, name="hipTexRefGetFlags")
-       import :: c_ptr, textureReference, hipSuccess
-       type(c_ptr), value :: pFlags
+       import :: c_int, textureReference, hipSuccess
+       integer(c_int) :: pFlags
        type(textureReference) :: texRef
        integer(kind(hipSuccess)) :: TexRefGetFlags
     end function hipTexRefGetFlags
@@ -6290,9 +6318,9 @@ module hip
     function hipTexRefGetFormat(pFormat, pNumChannels, texRef) &
        result(TexRefGetFormat) &
        bind(C, name="hipTexRefGetFormat")
-       import :: HIP_AD_FORMAT_UNSIGNED_INT8, c_ptr, textureReference, hipSuccess
+       import :: HIP_AD_FORMAT_UNSIGNED_INT8, c_int, textureReference, hipSuccess
        integer(kind(HIP_AD_FORMAT_UNSIGNED_INT8)) :: pFormat
-       type(c_ptr), value :: pNumChannels
+       integer(c_int) :: pNumChannels
        type(textureReference) :: texRef
        integer(kind(hipSuccess)) :: TexRefGetFormat
     end function hipTexRefGetFormat
@@ -6303,8 +6331,8 @@ module hip
     function hipTexRefGetMaxAnisotropy(pmaxAnsio, texRef) &
        result(TexRefGetMaxAnisotropy) &
        bind(C, name="hipTexRefGetMaxAnisotropy")
-       import :: c_ptr, textureReference, hipSuccess
-       type(c_ptr), value :: pmaxAnsio
+       import :: c_int, textureReference, hipSuccess
+       integer(c_int) :: pmaxAnsio
        type(textureReference) :: texRef
        integer(kind(hipSuccess)) :: TexRefGetMaxAnisotropy
     end function hipTexRefGetMaxAnisotropy
@@ -6327,8 +6355,8 @@ module hip
     function hipTexRefGetMipmapLevelBias(pbias, texRef) &
        result(TexRefGetMipmapLevelBias) &
        bind(C, name="hipTexRefGetMipmapLevelBias")
-       import :: c_ptr, textureReference, hipSuccess
-       type(c_ptr), value :: pbias
+       import :: c_float, textureReference, hipSuccess
+       real(c_float) :: pbias
        type(textureReference) :: texRef
        integer(kind(hipSuccess)) :: TexRefGetMipmapLevelBias
     end function hipTexRefGetMipmapLevelBias
@@ -6339,9 +6367,9 @@ module hip
     function hipTexRefGetMipmapLevelClamp(pminMipmapLevelClamp, pmaxMipmapLevelClamp, texRef) &
        result(TexRefGetMipmapLevelClamp) &
        bind(C, name="hipTexRefGetMipmapLevelClamp")
-       import :: c_ptr, textureReference, hipSuccess
-       type(c_ptr), value :: pminMipmapLevelClamp
-       type(c_ptr), value :: pmaxMipmapLevelClamp
+       import :: c_float, textureReference, hipSuccess
+       real(c_float) :: pminMipmapLevelClamp
+       real(c_float) :: pmaxMipmapLevelClamp
        type(textureReference) :: texRef
        integer(kind(hipSuccess)) :: TexRefGetMipmapLevelClamp
     end function hipTexRefGetMipmapLevelClamp
@@ -6552,10 +6580,10 @@ module hip
     function hipStreamGetCaptureInfo(stream, pCaptureStatus, pId) &
        result(StreamGetCaptureInfo) &
        bind(C, name="hipStreamGetCaptureInfo")
-       import :: c_ptr, hipStreamCaptureStatusNone, hipSuccess
+       import :: c_ptr, hipStreamCaptureStatusNone, c_int64_t, hipSuccess
        type(c_ptr), value :: stream
        integer(kind(hipStreamCaptureStatusNone)) :: pCaptureStatus
-       type(c_ptr), value :: pId
+       integer(c_int64_t) :: pId
        integer(kind(hipSuccess)) :: StreamGetCaptureInfo
     end function hipStreamGetCaptureInfo
 
@@ -6566,13 +6594,13 @@ module hip
                                         dependencies_out, numDependencies_out) &
        result(StreamGetCaptureInfo_v2) &
        bind(C, name="hipStreamGetCaptureInfo_v2")
-       import :: c_ptr, hipStreamCaptureStatusNone, hipSuccess
+       import :: c_ptr, hipStreamCaptureStatusNone, c_int64_t, c_size_t, hipSuccess
        type(c_ptr), value :: stream
        integer(kind(hipStreamCaptureStatusNone)) :: captureStatus_out
-       type(c_ptr), value :: id_out
+       integer(c_int64_t) :: id_out
        type(c_ptr) :: graph_out
        type(c_ptr) :: dependencies_out
-       type(c_ptr), value :: numDependencies_out
+       integer(c_size_t) :: numDependencies_out
        integer(kind(hipSuccess)) :: StreamGetCaptureInfo_v2
     end function hipStreamGetCaptureInfo_v2
 
@@ -6608,8 +6636,8 @@ module hip
     function hipThreadExchangeStreamCaptureMode(mode) &
        result(ThreadExchangeStreamCaptureMode) &
        bind(C, name="hipThreadExchangeStreamCaptureMode")
-       import :: c_ptr, hipSuccess
-       type(c_ptr), value :: mode
+       import :: hipStreamCaptureModeGlobal, hipSuccess
+       integer(kind(hipStreamCaptureModeGlobal)) :: mode
        integer(kind(hipSuccess)) :: ThreadExchangeStreamCaptureMode
     end function hipThreadExchangeStreamCaptureMode
 
@@ -6670,11 +6698,11 @@ module hip
     function hipGraphGetEdges(graph, from, to, numEdges) &
        result(GraphGetEdges) &
        bind(C, name="hipGraphGetEdges")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: graph
        type(c_ptr) :: from
        type(c_ptr) :: to
-       type(c_ptr), value :: numEdges
+       integer(c_size_t) :: numEdges
        integer(kind(hipSuccess)) :: GraphGetEdges
     end function hipGraphGetEdges
 
@@ -6684,10 +6712,10 @@ module hip
     function hipGraphGetNodes(graph, nodes, numNodes) &
        result(GraphGetNodes) &
        bind(C, name="hipGraphGetNodes")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: graph
        type(c_ptr) :: nodes
-       type(c_ptr), value :: numNodes
+       integer(c_size_t) :: numNodes
        integer(kind(hipSuccess)) :: GraphGetNodes
     end function hipGraphGetNodes
 
@@ -6697,10 +6725,10 @@ module hip
     function hipGraphGetRootNodes(graph, pRootNodes, pNumRootNodes) &
        result(GraphGetRootNodes) &
        bind(C, name="hipGraphGetRootNodes")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: graph
        type(c_ptr) :: pRootNodes
-       type(c_ptr), value :: pNumRootNodes
+       integer(c_size_t) :: pNumRootNodes
        integer(kind(hipSuccess)) :: GraphGetRootNodes
     end function hipGraphGetRootNodes
 
@@ -6710,10 +6738,10 @@ module hip
     function hipGraphNodeGetDependencies(node, pDependencies, pNumDependencies) &
        result(GraphNodeGetDependencies) &
        bind(C, name="hipGraphNodeGetDependencies")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: node
        type(c_ptr) :: pDependencies
-       type(c_ptr), value :: pNumDependencies
+       integer(c_size_t) :: pNumDependencies
        integer(kind(hipSuccess)) :: GraphNodeGetDependencies
     end function hipGraphNodeGetDependencies
 
@@ -6723,10 +6751,10 @@ module hip
     function hipGraphNodeGetDependentNodes(node, pDependentNodes, pNumDependentNodes) &
        result(GraphNodeGetDependentNodes) &
        bind(C, name="hipGraphNodeGetDependentNodes")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: node
        type(c_ptr) :: pDependentNodes
-       type(c_ptr), value :: pNumDependentNodes
+       integer(c_size_t) :: pNumDependentNodes
        integer(kind(hipSuccess)) :: GraphNodeGetDependentNodes
     end function hipGraphNodeGetDependentNodes
 
@@ -6864,9 +6892,9 @@ module hip
     function hipGraphExecGetFlags(graphExec, flags) &
        result(GraphExecGetFlags) &
        bind(C, name="hipGraphExecGetFlags")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_int64_t, hipSuccess
        type(c_ptr), value :: graphExec
-       type(c_ptr), value :: flags
+       integer(c_int64_t) :: flags
        integer(kind(hipSuccess)) :: GraphExecGetFlags
     end function hipGraphExecGetFlags
 
@@ -6912,11 +6940,11 @@ module hip
     function hipGraphExecUpdate(hGraphExec, hGraph, hErrorNode_out, updateResult_out) &
        result(GraphExecUpdate) &
        bind(C, name="hipGraphExecUpdate")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, hipGraphExecUpdateSuccess, hipSuccess
        type(c_ptr), value :: hGraphExec
        type(c_ptr), value :: hGraph
        type(c_ptr) :: hErrorNode_out
-       type(c_ptr), value :: updateResult_out
+       integer(kind(hipGraphExecUpdateSuccess)) :: updateResult_out
        integer(kind(hipSuccess)) :: GraphExecUpdate
     end function hipGraphExecUpdate
 
@@ -7949,8 +7977,8 @@ module hip
     function hipMemGetAccess(flags, location, ptr) &
        result(MemGetAccess) &
        bind(C, name="hipMemGetAccess")
-       import :: c_ptr, hipMemLocation, hipSuccess
-       type(c_ptr), value :: flags
+       import :: c_int64_t, hipMemLocation, c_ptr, hipSuccess
+       integer(c_int64_t) :: flags
        type(hipMemLocation) :: location
        type(c_ptr), value :: ptr
        integer(kind(hipSuccess)) :: MemGetAccess
@@ -7962,8 +7990,8 @@ module hip
     function hipMemGetAllocationGranularity(granularity, prop, option) &
        result(MemGetAllocationGranularity) &
        bind(C, name="hipMemGetAllocationGranularity")
-       import :: c_ptr, hipMemAllocationProp, hipMemAllocationGranularityMinimum, hipSuccess
-       type(c_ptr), value :: granularity
+       import :: c_size_t, hipMemAllocationProp, hipMemAllocationGranularityMinimum, hipSuccess
+       integer(c_size_t) :: granularity
        type(hipMemAllocationProp) :: prop
        integer(kind(hipMemAllocationGranularityMinimum)), value :: option
        integer(kind(hipSuccess)) :: MemGetAllocationGranularity

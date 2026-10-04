@@ -45,7 +45,7 @@ program graph_nodes
   type(c_ptr) :: graph = c_null_ptr, gexec = c_null_ptr, errnode = c_null_ptr
   type(c_ptr) :: stream = c_null_ptr, dptr = c_null_ptr
   type(c_ptr) :: nodeH2D = c_null_ptr, nodeD2H = c_null_ptr
-  integer(c_size_t), target :: numnodes
+  integer(c_size_t) :: numnodes
   type(c_ptr) :: nodes_out(8)   ! capacity buffer for hipGraphGetNodes
   integer(c_size_t) :: nbytes
   integer :: i
@@ -76,7 +76,7 @@ program graph_nodes
   ! numnodes holds the actual count. (nodes is a by-reference c_ptr in the
   ! binding, so a real capacity buffer is used rather than a null query.)
   numnodes = size(nodes_out, kind=c_size_t)
-  call hipCheck(hipGraphGetNodes(graph, nodes_out(1), c_loc(numnodes)))
+  call hipCheck(hipGraphGetNodes(graph, nodes_out(1), numnodes))
   if (numnodes /= 2) then
      write(*,*) "FAILED! graph node count = ", numnodes, " (expected 2)"
      call exit(1)

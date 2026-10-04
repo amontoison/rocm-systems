@@ -55,7 +55,8 @@ program cooperative_launch
   real(c_double), target :: ha(n), hb(n), hout(n)
   type(c_ptr), target :: da = c_null_ptr, db = c_null_ptr, dout = c_null_ptr
   type(c_ptr), target :: args(4)
-  integer(c_int), target :: nn, nblocks
+  integer(c_int), target :: nn
+  integer(c_int) :: nblocks
   integer(c_int) :: coop, ncu, i
   integer(kind(hipSuccess)) :: stat
   integer(c_size_t) :: nbytes
@@ -92,7 +93,7 @@ program cooperative_launch
 
   ! A cooperative grid must be co-resident, so it is capped by the occupancy of
   ! the kernel times the number of compute units.
-  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(c_loc(nblocks), &
+  call hipCheck(hipOccupancyMaxActiveBlocksPerMultiprocessor(nblocks, &
                                                              c_funloc(vector_add), &
                                                              blocksize, 0_c_size_t))
   call hipCheck(hipDeviceGetAttribute(ncu, hipDeviceAttributeMultiprocessorCount, 0))

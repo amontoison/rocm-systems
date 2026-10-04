@@ -44,7 +44,7 @@ program virtual_memory
   type(hipMemAccessDesc)     :: desc
   type(c_ptr)                :: vptr = c_null_ptr
   type(c_ptr)                :: handle = c_null_ptr
-  integer(c_size_t), target  :: granularity
+  integer(c_size_t) :: granularity
   integer(c_size_t)          :: nbytes, padded
   real(c_double), target     :: hx(n), hy(n)
   integer                    :: i
@@ -61,7 +61,7 @@ program virtual_memory
   prop%allocFlags = 0
 
   granularity = 0
-  call hipCheck(hipMemGetAllocationGranularity(c_loc(granularity), prop, &
+  call hipCheck(hipMemGetAllocationGranularity(granularity, prop, &
                                                hipMemAllocationGranularityMinimum))
   if (granularity <= 0) then
      write(*,*) "FAILED! allocation granularity =", granularity
