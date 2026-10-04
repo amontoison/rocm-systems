@@ -365,25 +365,23 @@ include(CMakePackageConfigHelpers)
 # outright on a prefix where the bindings are not installed.
 set(_fortran_pkgdir "${CMAKE_INSTALL_LIBDIR}/cmake/hip-fortran")
 
-# COMPONENT devel on every rule below: everything installed here is needed to
-# build against the bindings, not to run a program, and devel is what
-# rocm-cmake's install helpers default to. Without it the user who installs
-# devel to build against HIP does not get them at all. Plain install(), not
-# rocm_install(): this directory must also configure standalone, where
-# rocm-cmake was never loaded and those commands do not exist.
+# dev is the component clr's CPack packages HIP's headers and config under.
+set(HIP_FORTRAN_INSTALL_COMPONENT "dev" CACHE STRING
+    "Install component of the HIP Fortran bindings")
+
 install(TARGETS hip_fortran
         EXPORT hip-fortran-targets
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/fortran/${HIP_FORTRAN_COMPILER_DIR}"
-                COMPONENT devel)
+                COMPONENT ${HIP_FORTRAN_INSTALL_COMPONENT})
 install(DIRECTORY "${_moddir}/"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/fortran/${HIP_FORTRAN_COMPILER_DIR}"
-        COMPONENT devel
+        COMPONENT ${HIP_FORTRAN_INSTALL_COMPONENT}
         FILES_MATCHING PATTERN "*.mod")
 install(EXPORT hip-fortran-targets
         FILE hip-fortran-targets.cmake
         NAMESPACE hip::
         DESTINATION "${_fortran_pkgdir}"
-        COMPONENT devel)
+        COMPONENT ${HIP_FORTRAN_INSTALL_COMPONENT})
 
 # Kept out of the template so neither side spells lib/ or include/ literally: a
 # literal lib/fortran is wrong the moment CMAKE_INSTALL_LIBDIR is lib64.
@@ -401,7 +399,7 @@ configure_package_config_file(
   PATH_VARS HIP_FORTRAN_LIBDIR HIP_FORTRAN_INCLUDEDIR)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/hip-fortran-config.cmake"
         DESTINATION "${_fortran_pkgdir}"
-        COMPONENT devel)
+        COMPONENT ${HIP_FORTRAN_INSTALL_COMPONENT})
 
 # Read from the VERSION file in the source tree, the same one hipamd parses, and
 # NOT from hip_VERSION: that is set by find_package(hip) above and reports
@@ -427,7 +425,7 @@ if(_fortran_version)
   # file NEXT TO the <pkg>-config.cmake it resolved.
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/hip-fortran-config-version.cmake"
           DESTINATION "${_fortran_pkgdir}"
-          COMPONENT devel)
+          COMPONENT ${HIP_FORTRAN_INSTALL_COMPONENT})
 else()
   # Better none than a wrong one: a version file claiming the wrong number makes
   # a versioned find_package succeed and link the wrong .mod.
@@ -443,4 +441,4 @@ endif()
 # directory to report which compilers are installed.
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/hip.F90"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/hip/fortran"
-        COMPONENT devel)
+        COMPONENT ${HIP_FORTRAN_INSTALL_COMPONENT})
