@@ -29,10 +29,11 @@
 ! Builds a diamond-shaped graph by hand:
 !   nodeH2D  (hipGraphAddMemcpyNode, 3-D parms, host->device)
 !     -> nodeEmpty (hipGraphAddEmptyNode)
-!        -> nodeMemset (zeros device buffer)
+!        -> nodeMemset (fills the device buffer with 7)
 !        -> nodeD2H   (hipGraphAddMemcpyNode, 3-D parms, device->host)
 !   nodeMemset -> nodeD2H  (completes the diamond)
-! Verifies node count, then that D2H delivers the memset-zeroed values.
+! Verifies node count, then that D2H delivers the memset value: hdst starts as
+! -1 and hsrc as 1..n, so a no-op copy or a skipped memset both fail.
 !!!!!!!!!!!!!!
 !
 program graph_empty_node
@@ -42,6 +43,7 @@ program graph_empty_node
   implicit none
 
   integer(c_int), parameter :: n = 64    ! elements (int32)
+  integer(c_int), parameter :: fill = 7
   integer(c_int), target    :: hsrc(n), hdst(n)
   type(c_ptr) :: dptr      = c_null_ptr
   type(c_ptr) :: graph     = c_null_ptr
@@ -67,7 +69,7 @@ program graph_empty_node
   do i = 1, n
     hsrc(i) = i
   end do
-  hdst = 0
+  hdst = -1
 
   call hipCheck(hipSetDevice(0))
   call hipCheck(hipMalloc(dptr, nbytes))
@@ -92,7 +94,7 @@ program graph_empty_node
   mp%width       = int(n, c_size_t)
   mp%height      = 1_c_size_t
   mp%pitch       = nbytes
-  mp%value       = 0_c_int
+  mp%value       = fill
   call hipCheck(hipGraphAddMemsetNode(nodeMemset, graph, nodeEmpty, 1_c_size_t, mp))
 
   cp%srcArray = c_null_ptr
@@ -105,7 +107,7 @@ program graph_empty_node
   cp%kind     = int(hipMemcpyDeviceToHost, c_int)
   call hipCheck(hipGraphAddMemcpyNode(nodeD2H, graph, nodeEmpty, 1_c_size_t, cp))
 
-  ! Complete the diamond: D2H must also wait for memset so it reads zeros.
+  ! Complete the diamond: D2H must also wait for memset so it reads the fill.
   call hipCheck(hipGraphAddDependencies(graph, nodeMemset, nodeD2H, 1_c_size_t))
 
   numnodes = size(nodes_out, kind=c_size_t)
@@ -120,10 +122,10 @@ program graph_empty_node
   call hipCheck(hipGraphLaunch(gexec, stream))
   call hipCheck(hipStreamSynchronize(stream))
 
-  ! ---- Verify: memset runs after H2D and before D2H, so hdst must be zero ----
+  ! ---- Verify: memset runs after H2D and before D2H, so hdst must be fill ----
   do i = 1, n
-    if (hdst(i) /= 0) then
-      write(*,*) "FAILED! hdst(", i, ") =", hdst(i), " (expected 0)"
+    if (hdst(i) /= fill) then
+      write(*,*) "FAILED! hdst(", i, ") =", hdst(i), " (expected", fill, ")"
       call exit(1)
     end if
   end do
