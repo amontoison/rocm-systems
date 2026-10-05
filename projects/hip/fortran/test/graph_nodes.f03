@@ -30,8 +30,9 @@
 ! Builds a graph by hand rather than by stream capture: two 1-D memcpy nodes
 ! (H2D then D2H) linked with an explicit dependency, then instantiated and
 ! launched. Exercises hipGraphCreate, hipGraphAddMemcpyNode1D,
-! hipGraphAddDependencies, hipGraphGetNodes, hipGraphInstantiate,
-! hipGraphLaunch, hipGraphExecDestroy and hipGraphDestroy.
+! hipGraphAddDependencies, hipGraphGetNodes (count-only query with nodes
+! omitted, then into a larger buffer), hipGraphInstantiate, hipGraphLaunch,
+! hipGraphExecDestroy and hipGraphDestroy.
 !!!!!!!!!!!!!!
 !
 program graph_nodes
@@ -72,13 +73,24 @@ program graph_nodes
   ! Make the device->host copy depend on the host->device copy.
   call hipCheck(hipGraphAddDependencies(graph, nodeH2D, nodeD2H, 1_c_size_t))
 
-  ! Query the node count: pass an array and its capacity in numnodes; on return
-  ! numnodes holds the actual count. (nodes is a by-reference c_ptr in the
-  ! binding, so a real capacity buffer is used rather than a null query.)
+  ! Count-only query: nodes omitted, i.e. NULL.
+  numnodes = 12345
+  call hipCheck(hipGraphGetNodes(graph, numNodes=numnodes))
+  if (numnodes /= 2) then
+     write(*,*) "FAILED! count-only graph node count = ", numnodes, " (expected 2)"
+     call exit(1)
+  end if
+
+  ! Into a larger buffer: numnodes is the capacity on entry, the count on return.
   numnodes = size(nodes_out, kind=c_size_t)
+  nodes_out = c_null_ptr
   call hipCheck(hipGraphGetNodes(graph, nodes_out(1), numnodes))
   if (numnodes /= 2) then
      write(*,*) "FAILED! graph node count = ", numnodes, " (expected 2)"
+     call exit(1)
+  end if
+  if (.not. (c_associated(nodes_out(1)) .and. c_associated(nodes_out(2)))) then
+     write(*,*) "FAILED! hipGraphGetNodes returned a null node"
      call exit(1)
   end if
 

@@ -80,8 +80,7 @@ program stream_capture_info
   call expect_status(capstat, hipStreamCaptureStatusNone, "hipStreamIsCapturing before capture")
 
   capstat = -1
-  capid = -1
-  call hipCheck(hipStreamGetCaptureInfo(stream, capstat, capid))
+  call hipCheck(hipStreamGetCaptureInfo(stream, capstat))   ! pId omitted: NULL
   call expect_status(capstat, hipStreamCaptureStatusNone, "hipStreamGetCaptureInfo before capture")
 
   ! 2. Inside a capture all three queries must report Active, and the two
