@@ -201,14 +201,14 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(HIP_HAVE_FORTRAN_BINDINGS TRUE PARENT_SCOPE)
 endif()
 
-# clr has no client switch, so in-tree the GPU tests also need BUILD_TESTING
-# (or HIP_BUILD_FORTRAN_CLIENTS); not written back to the shared cache entry.
+# clr has no client switch, so in-tree the GPU tests also need BUILD_TESTING;
+# not written back to the shared cache entry.
 if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
    AND BUILD_FORTRAN_CLIENTS
-   AND NOT (BUILD_TESTING OR HIP_BUILD_FORTRAN_CLIENTS))
+   AND NOT BUILD_TESTING)
   message(STATUS
     "HIP: testing is not enabled, skipping the Fortran binding tests. Pass "
-    "-DBUILD_TESTING=ON or -DHIP_BUILD_FORTRAN_CLIENTS=ON to build them.")
+    "-DBUILD_TESTING=ON to build them.")
   set(BUILD_FORTRAN_CLIENTS OFF)
 endif()
 
