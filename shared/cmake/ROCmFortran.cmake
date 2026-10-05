@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Probes once per build tree for a Fortran compiler, preferring ROCm's amdflang,
+# Probes once per configure for a Fortran compiler, preferring ROCm's amdflang,
 # and publishes ROCM_HAVE_FORTRAN. Include it OPTIONAL: a project extracted from
 # the monorepo must fall back to its own probe.
 
