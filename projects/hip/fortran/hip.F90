@@ -2130,8 +2130,8 @@ module hip
     function hipDeviceGetTexture1DLinearMaxWidth(max_width, desc, device) &
        result(DeviceGetTexture1DLinearMaxWidth) &
        bind(C, name="hipDeviceGetTexture1DLinearMaxWidth")
-       import :: c_ptr, hipChannelFormatDesc, c_int, hipSuccess
-       type(c_ptr), value :: max_width
+       import :: c_size_t, hipChannelFormatDesc, c_int, hipSuccess
+       integer(c_size_t) :: max_width
        type(hipChannelFormatDesc) :: desc
        integer(c_int), value :: device
        integer(kind(hipSuccess)) :: DeviceGetTexture1DLinearMaxWidth
@@ -3731,8 +3731,8 @@ module hip
        result(ModuleGetGlobal) &
        bind(C, name="hipModuleGetGlobal")
        import :: c_ptr, c_size_t, hipSuccess
-       type(c_ptr) :: dptr
-       integer(c_size_t) :: bytes
+       type(c_ptr), optional :: dptr
+       integer(c_size_t), optional :: bytes
        type(c_ptr), value :: hmod
        type(c_ptr), value :: name
        integer(kind(hipSuccess)) :: ModuleGetGlobal
@@ -5223,9 +5223,9 @@ module hip
     function hipLibraryGetGlobal(dptr, bytes, library, name) &
        result(LibraryGetGlobal) &
        bind(C, name="hipLibraryGetGlobal")
-       import :: c_ptr, hipSuccess
-       type(c_ptr) :: dptr
-       type(c_ptr), value :: bytes
+       import :: c_ptr, c_size_t, hipSuccess
+       type(c_ptr), optional :: dptr
+       integer(c_size_t), optional :: bytes
        type(c_ptr), value :: library
        type(c_ptr), value :: name
        integer(kind(hipSuccess)) :: LibraryGetGlobal
@@ -5237,9 +5237,9 @@ module hip
     function hipLibraryGetManaged(dptr, bytes, library, name) &
        result(LibraryGetManaged) &
        bind(C, name="hipLibraryGetManaged")
-       import :: c_ptr, hipSuccess
-       type(c_ptr) :: dptr
-       type(c_ptr), value :: bytes
+       import :: c_ptr, c_size_t, hipSuccess
+       type(c_ptr), optional :: dptr
+       integer(c_size_t), optional :: bytes
        type(c_ptr), value :: library
        type(c_ptr), value :: name
        integer(kind(hipSuccess)) :: LibraryGetManaged
@@ -5291,8 +5291,8 @@ module hip
        import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: kernel
        integer(c_size_t), value :: paramIndex
-       type(c_ptr), value :: paramOffset
-       type(c_ptr), value :: paramSize
+       integer(c_size_t) :: paramOffset
+       integer(c_size_t), optional :: paramSize
        integer(kind(hipSuccess)) :: KernelGetParamInfo
     end function hipKernelGetParamInfo
 
@@ -5748,8 +5748,8 @@ module hip
     function hipOccupancyMaxPotentialClusterSize(clusterSize, f, config) &
        result(OccupancyMaxPotentialClusterSize) &
        bind(C, name="hipOccupancyMaxPotentialClusterSize")
-       import :: c_ptr, c_funptr, hipLaunchConfig_t, hipSuccess
-       type(c_ptr), value :: clusterSize
+       import :: c_int, c_funptr, hipLaunchConfig_t, hipSuccess
+       integer(c_int) :: clusterSize
        type(c_funptr), value :: f
        type(hipLaunchConfig_t) :: config
        integer(kind(hipSuccess)) :: OccupancyMaxPotentialClusterSize
@@ -6583,7 +6583,7 @@ module hip
        import :: c_ptr, hipStreamCaptureStatusNone, c_int64_t, hipSuccess
        type(c_ptr), value :: stream
        integer(kind(hipStreamCaptureStatusNone)) :: pCaptureStatus
-       integer(c_int64_t) :: pId
+       integer(c_int64_t), optional :: pId
        integer(kind(hipSuccess)) :: StreamGetCaptureInfo
     end function hipStreamGetCaptureInfo
 
@@ -6597,10 +6597,10 @@ module hip
        import :: c_ptr, hipStreamCaptureStatusNone, c_int64_t, c_size_t, hipSuccess
        type(c_ptr), value :: stream
        integer(kind(hipStreamCaptureStatusNone)) :: captureStatus_out
-       integer(c_int64_t) :: id_out
-       type(c_ptr) :: graph_out
-       type(c_ptr) :: dependencies_out
-       integer(c_size_t) :: numDependencies_out
+       integer(c_int64_t), optional :: id_out
+       type(c_ptr), optional :: graph_out
+       type(c_ptr), optional :: dependencies_out
+       integer(c_size_t), optional :: numDependencies_out
        integer(kind(hipSuccess)) :: StreamGetCaptureInfo_v2
     end function hipStreamGetCaptureInfo_v2
 
@@ -6700,8 +6700,8 @@ module hip
        bind(C, name="hipGraphGetEdges")
        import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: graph
-       type(c_ptr) :: from
-       type(c_ptr) :: to
+       type(c_ptr), optional :: from
+       type(c_ptr), optional :: to
        integer(c_size_t) :: numEdges
        integer(kind(hipSuccess)) :: GraphGetEdges
     end function hipGraphGetEdges
@@ -6714,7 +6714,7 @@ module hip
        bind(C, name="hipGraphGetNodes")
        import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: graph
-       type(c_ptr) :: nodes
+       type(c_ptr), optional :: nodes
        integer(c_size_t) :: numNodes
        integer(kind(hipSuccess)) :: GraphGetNodes
     end function hipGraphGetNodes
@@ -6727,7 +6727,7 @@ module hip
        bind(C, name="hipGraphGetRootNodes")
        import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: graph
-       type(c_ptr) :: pRootNodes
+       type(c_ptr), optional :: pRootNodes
        integer(c_size_t) :: pNumRootNodes
        integer(kind(hipSuccess)) :: GraphGetRootNodes
     end function hipGraphGetRootNodes
@@ -6740,7 +6740,7 @@ module hip
        bind(C, name="hipGraphNodeGetDependencies")
        import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: node
-       type(c_ptr) :: pDependencies
+       type(c_ptr), optional :: pDependencies
        integer(c_size_t) :: pNumDependencies
        integer(kind(hipSuccess)) :: GraphNodeGetDependencies
     end function hipGraphNodeGetDependencies
@@ -6753,7 +6753,7 @@ module hip
        bind(C, name="hipGraphNodeGetDependentNodes")
        import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr), value :: node
-       type(c_ptr) :: pDependentNodes
+       type(c_ptr), optional :: pDependentNodes
        integer(c_size_t) :: pNumDependentNodes
        integer(kind(hipSuccess)) :: GraphNodeGetDependentNodes
     end function hipGraphNodeGetDependentNodes
@@ -8132,9 +8132,9 @@ module hip
     function hipGraphicsResourceGetMappedPointer(devPtr, mySize, resource) &
        result(GraphicsResourceGetMappedPointer) &
        bind(C, name="hipGraphicsResourceGetMappedPointer")
-       import :: c_ptr, hipSuccess
+       import :: c_ptr, c_size_t, hipSuccess
        type(c_ptr) :: devPtr
-       type(c_ptr), value :: mySize
+       integer(c_size_t) :: mySize
        type(c_ptr), value :: resource
        integer(kind(hipSuccess)) :: GraphicsResourceGetMappedPointer
     end function hipGraphicsResourceGetMappedPointer
